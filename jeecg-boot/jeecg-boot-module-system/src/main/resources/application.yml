@@ -7,3 +7,8 @@ swagger:
     enable: false
     username: jeecg
     password: jeecg1314
+api:
+  apiKey: A8CC398943FB4E21A4D1D8338FEB1DC2
+  userId: A1699
+  http:
+    address: http://cz.llczy.com/ApiAgent/Gateway

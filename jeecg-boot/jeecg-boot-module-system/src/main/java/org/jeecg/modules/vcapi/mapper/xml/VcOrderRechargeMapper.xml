@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.vcapi.mapper.VcOrderRechargeMapper">
+
+    <select id="getVcOrderRechargeNew" resultType="org.jeecg.modules.vcapi.entity.VcOrderRecharge">
+        select * from vc_order_recharge
+        <where>
+            <if test="orderNo!=null">order_no=#{orderNo}</if>
+            <if test="accountVal!=null">and account_val=#{accountVal}</if>
+            <if test="bizType!=null">and biz_type=#{bizType}</if>
+        </where>
+    </select>
+</mapper>
