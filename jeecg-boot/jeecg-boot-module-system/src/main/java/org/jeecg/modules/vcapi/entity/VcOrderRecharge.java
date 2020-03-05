@@ -6,9 +6,11 @@ import java.math.BigDecimal;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.NoArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.jeecgframework.poi.excel.annotation.Excel;
 import org.jeecg.common.aspect.annotation.Dict;
@@ -22,6 +24,8 @@ import org.jeecg.common.aspect.annotation.Dict;
 @Data
 @Builder
 @TableName("vc_order_recharge")
+@AllArgsConstructor
+@NoArgsConstructor
 public class VcOrderRecharge implements Serializable {
     private static final long serialVersionUID = 1L;
     
@@ -85,4 +89,20 @@ public class VcOrderRecharge implements Serializable {
 
 	@Excel(name = "回调地址", width = 1000)
 	private String callbackAddress;
+
+
+	@Excel(name = "客户回调结果", width = 15)
+	private String customerCallbackResult;
+	/**用户订单号*/
+	@Excel(name = "重新回调状态 null 不需要回调 1 等待回调，2，回调成功，3 回调失败", width = 15)
+	private String againCallbackStatus;
+	/**回调状态*/
+	@Excel(name = "重新回调结", width = 15)
+	private String againCallbackResult;
+	/**回调时间*/
+	@Excel(name = "回调时间", width = 15, format = "yyyy-MM-dd")
+	@JsonFormat(timezone = "GMT+8",pattern = "yyyy-MM-dd")
+	@DateTimeFormat(pattern="yyyy-MM-dd")
+	private Date againCallbackTimes;
+
 }

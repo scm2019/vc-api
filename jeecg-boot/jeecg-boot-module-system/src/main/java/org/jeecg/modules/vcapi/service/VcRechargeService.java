@@ -45,4 +45,13 @@ public interface VcRechargeService {
 
      String callBack(CallBackReqDto callBackReqDto);
 
+     /**
+      * @Author: Mr.Luke
+      * @Description: 将回调失败的数据重新回调
+      * @Date: 14:17 2020/3/5
+      * @Param: [callBackReqDto]
+      * @return: java.lang.String
+      */
+     String againCallBack();
+
 }

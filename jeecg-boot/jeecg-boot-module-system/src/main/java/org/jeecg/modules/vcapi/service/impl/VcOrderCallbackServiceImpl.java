@@ -1,11 +1,10 @@
 package org.jeecg.modules.vcapi.service.impl;
 
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.jeecg.modules.vcapi.entity.VcOrderCallback;
 import org.jeecg.modules.vcapi.mapper.VcOrderCallbackMapper;
 import org.jeecg.modules.vcapi.service.IVcOrderCallbackService;
 import org.springframework.stereotype.Service;
-
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
 /**
  * @Description: vc_order_callback

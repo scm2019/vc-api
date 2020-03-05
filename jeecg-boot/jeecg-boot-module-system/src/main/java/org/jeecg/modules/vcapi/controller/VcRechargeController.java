@@ -62,11 +62,11 @@ public class VcRechargeController {
         return vcRechargeService.getProductByBizType(bizType);
     }
 
-    @GetMapping("getBalance")
-    @ApiOperation("获取账户余额")
-    public ResponseBean getUserBalance(String bizType){
-        return vcRechargeService.getUserBalance(bizType);
-    }
+//    @GetMapping("getBalance")
+//    @ApiOperation("获取账户余额")
+//    public ResponseBean getUserBalance(String bizType){
+//        return vcRechargeService.getUserBalance(bizType);
+//    }
 
     @PostMapping("recharge")
     @ApiOperation("充值API接口")

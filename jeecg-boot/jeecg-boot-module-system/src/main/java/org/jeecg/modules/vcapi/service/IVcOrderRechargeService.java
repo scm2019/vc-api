@@ -15,4 +15,6 @@ public interface IVcOrderRechargeService extends IService<VcOrderRecharge> {
 
     List<VcOrderRecharge> getVcOrderRechargeList(VcOrderRecharge vcOrderRecharge);
 
+    List<VcOrderRecharge> getAgainCallBack();
+
 }

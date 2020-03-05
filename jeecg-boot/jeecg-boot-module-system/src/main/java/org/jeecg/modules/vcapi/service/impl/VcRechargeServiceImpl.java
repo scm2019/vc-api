@@ -1,6 +1,7 @@
 package org.jeecg.modules.vcapi.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.jeecg.common.util.IDUtils;
 import org.jeecg.modules.shiro.vo.ResponseBean;
@@ -8,10 +9,7 @@ import org.jeecg.modules.vcapi.entity.VcOrderCallback;
 import org.jeecg.modules.vcapi.entity.VcOrderRecharge;
 import org.jeecg.modules.vcapi.entity.req.CallBackReqDto;
 import org.jeecg.modules.vcapi.entity.req.RechargeReqDto;
-import org.jeecg.modules.vcapi.enums.ApiStatusEnum;
-import org.jeecg.modules.vcapi.enums.ApiTypeEnum;
-import org.jeecg.modules.vcapi.enums.CallbackStatusEnum;
-import org.jeecg.modules.vcapi.enums.OrderStatusEnum;
+import org.jeecg.modules.vcapi.enums.*;
 import org.jeecg.modules.vcapi.service.IVcOrderCallbackService;
 import org.jeecg.modules.vcapi.service.IVcOrderRechargeService;
 import org.jeecg.modules.vcapi.service.VcRechargeService;
@@ -21,7 +19,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.client.RestTemplate;
 
@@ -200,7 +200,7 @@ public class VcRechargeServiceImpl implements VcRechargeService {
         }else {
             vcOrderRecharge=list.get(0);
             log.debug("是否需要更新状态，订单ID："+orderNo);
-            if(orderStatusEnum.getValue().equals(vcOrderRecharge.getOrderStatus())) {
+            if(!orderStatusEnum.getValue().equals(vcOrderRecharge.getOrderStatus())) {
                 vcOrderRecharge.setOrderStatus(orderStatusEnum.getValue());
                 vcOrderRechargeService.updateById(vcOrderRecharge);
             }
@@ -242,21 +242,7 @@ public class VcRechargeServiceImpl implements VcRechargeService {
             vcOrderRecharge = list.get(0);
             log.debug("回调地址：" + vcOrderRecharge.getCallbackAddress());
 
-            StringBuilder str = new StringBuilder("?");
-            str.append("orderNo=" + callBackReqDto.getOrderNo());
-            str.append("&accountVal=" + callBackReqDto.getAccountVal());
-            str.append("&bizType=" + callBackReqDto.getBizType());
-            str.append("&orderStatus=" + callBackReqDto.getOrderStatus());
-            str.append("&orderMsg=" + orderStatusEnum.getContent());
-            str.append("&time=" + callBackReqDto.getTime());
-
-            log.debug("回调参数：" + str.toString());
-            String result="network error";
-            try {
-                 result = restTemplate.getForObject(vcOrderRecharge.getCallbackAddress() + str.toString(), String.class);
-            }catch (Exception e){
-                log.error("回调地址错误",e);
-            }
+            String result=requestCallback(callBackReqDto,vcOrderRecharge.getCallbackAddress(),orderStatusEnum);
             VcOrderCallback vcOrderCallback=VcOrderCallback.builder()
                     .id(IDUtils.getID())
                     .accountVal(callBackReqDto.getAccountVal())
@@ -270,20 +256,81 @@ public class VcRechargeServiceImpl implements VcRechargeService {
 
             log.debug("订单状态：",callBackReqDto.getOrderStatus());
             vcOrderCallback.setCallbackStatus(result);
+            vcOrderCallbackService.save(vcOrderCallback);
             if (CallbackStatusEnum.OK.getCode().equals(result)){
                 log.debug("回调地址成功！！！");
-            }else{
-                vcOrderCallbackService.save(vcOrderCallback);
-                return result;
             }
-
+            vcOrderRecharge.setCustomerCallbackResult(result);
             vcOrderRecharge.setOrderStatus(orderStatusEnum.getValue());
             vcOrderRecharge.setCallback(1);
             vcOrderRecharge.setCallbackTime(new Date());
 
             vcOrderRechargeService.updateById(vcOrderRecharge);
-            return CallbackStatusEnum.OK.getCode();
+            return result;
         }
+    }
+
+    @Override
+    @Scheduled(cron = "0/5 * * * * ?")
+    @Transactional
+    public String againCallBack() {
+        log.debug("主动回调任务开始");
+        Long start=System.currentTimeMillis();
+        List<VcOrderRecharge> list= vcOrderRechargeService.getAgainCallBack();
+        log.debug("需要主动回调任务数："+list.size());
+        list.forEach(entity->{
+            OrderStatusEnum orderStatusEnum=OrderStatusEnum.getOrderStatusEnumByCode(queryOrder(entity.getOrderNo(),entity.getBizType()).getMsg());
+            entity.setOrderStatus(orderStatusEnum.getValue());
+            log.debug("回调订单详情："+entity);
+            CallBackReqDto callBackReqDto=CallBackReqDto.builder()
+                    .accountVal(entity.getAccountVal())
+                    .bizType(entity.getBizType())
+                    .orderNo(entity.getOrderNo())
+                    .orderStatus(orderStatusEnum.getCode())
+                    .time(String.valueOf(System.currentTimeMillis()))
+                    .build();
+            String result=requestCallback(callBackReqDto,entity.getCallbackAddress(),orderStatusEnum);
+            VcOrderRecharge vcOrderRecharge=new VcOrderRecharge();
+            vcOrderRecharge.setId(entity.getId());
+            if (CallbackStatusEnum.OK.getCode().equals(result)){
+                log.debug("回调成功！！！");
+                vcOrderRecharge.setAgainCallbackStatus(AgainCallbackStatus.SUCCESS.getCode());
+            }else{
+                log.warn("回调失败！！！");
+                vcOrderRecharge.setAgainCallbackStatus(AgainCallbackStatus.FAIL.getCode());
+            }
+            vcOrderRecharge.setAgainCallbackResult(result);
+            vcOrderRecharge.setAgainCallbackTimes(new Date());
+            vcOrderRechargeService.updateById(vcOrderRecharge);
+        });
+        log.debug("回调订单结束，总耗时："+(System.currentTimeMillis()-start)/1000+" 秒");
+        return "OK";
+    }
+
+    /**
+     * @Author: Mr.Luke
+     * @Description: 发起回调方法
+     * @Date: 14:15 2020/3/5
+     * @Param: [callBackReqDto, address, orderStatusEnum]
+     * @return: java.lang.String
+     */
+    private String requestCallback(CallBackReqDto  callBackReqDto,String address,OrderStatusEnum orderStatusEnum){
+        StringBuilder str = new StringBuilder("?");
+        str.append("orderNo=" + callBackReqDto.getOrderNo());
+        str.append("&accountVal=" + callBackReqDto.getAccountVal());
+        str.append("&bizType=" + callBackReqDto.getBizType());
+        str.append("&orderStatus=" + callBackReqDto.getOrderStatus());
+        str.append("&orderMsg=" + orderStatusEnum.getContent());
+        str.append("&time=" + callBackReqDto.getTime());
+
+        log.debug("回调参数：" + str.toString());
+        String result="network error";
+        try {
+            result = restTemplate.getForObject(address + str.toString(), String.class);
+        }catch (Exception e){
+            log.error("回调地址错误",e);
+        }
+        return result;
     }
 
 
