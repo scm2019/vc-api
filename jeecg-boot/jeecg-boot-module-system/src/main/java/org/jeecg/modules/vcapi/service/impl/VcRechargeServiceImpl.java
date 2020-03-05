@@ -271,7 +271,7 @@ public class VcRechargeServiceImpl implements VcRechargeService {
     }
 
     @Override
-    @Scheduled(cron = "0/5 * * * * ?")
+    @Scheduled(cron = "0 0/5 * * * ?")
     @Transactional
     public String againCallBack() {
         log.debug("主动回调任务开始");
