@@ -46,7 +46,12 @@ public class ShiroConfig {
 		filterChainDefinitionMap.put("/cas/client/validateLogin", "anon");
 		// 配置不会被拦截的链接 顺序判断
 
-		filterChainDefinitionMap.put("/vcapi/vcRecharge/*", "anon"); //登录接口排除
+		filterChainDefinitionMap.put("/vcapi/vcRecharge/BizType", "anon"); //非下单接口排除
+		filterChainDefinitionMap.put("/vcapi/vcRecharge/getProduct", "anon"); //非下单接口排除
+		filterChainDefinitionMap.put("/vcapi/vcRecharge/queryOrder", "anon"); //非下单接口排除
+		filterChainDefinitionMap.put("/vcapi/vcRecharge/callback", "anon"); //非下单接口排除
+		filterChainDefinitionMap.put("/vcapi/vcRecharge/callbackTest", "anon");
+
 
 		filterChainDefinitionMap.put("/sys/login", "anon"); //登录接口排除
 		filterChainDefinitionMap.put("/sys/logout", "anon"); //登出接口排除

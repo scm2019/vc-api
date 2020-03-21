@@ -90,6 +90,9 @@ public class VcOrderRecharge implements Serializable {
 	@Excel(name = "回调地址", width = 1000)
 	private String callbackAddress;
 
+	private String createBy;
+	private String updateBy;
+
 
 	@Excel(name = "客户回调结果", width = 15)
 	private String customerCallbackResult;
