@@ -15,6 +15,7 @@ public enum OrderStatusEnum {
     FAILED("FAILED",3,"充值失败"),
     UNDERWAY("UNDERWAY",4,"下单成功，充值中"),
     NOTEXIST("NOTEXIST",5,"订单不存在，下单失败"),
+    NUDEFOUNDREPOSE("NUDEFOUNDREPOSE",6,"未知状态"),
     ;
 
     private String code;
@@ -50,6 +51,6 @@ public enum OrderStatusEnum {
                 return sexEnum;
             }
         }
-        return null;
+        return NUDEFOUNDREPOSE;
     }
 }
