@@ -133,6 +133,14 @@ public class VcRechargeServiceImpl implements VcRechargeService {
         vcOrderRecharge.setUpdateTime(date);
         vcOrderRecharge.setCallback(0);
         log.debug("开始访问，充值API，参数："+param);
+//
+//        //todo 测试代码
+//        vcOrderRecharge.setRequestCode("OK");
+//        vcOrderRecharge.setRequestStatus("1");
+//        vcOrderRecharge.setRequestMsg("成功");
+//        vcOrderRechargeService.save(vcOrderRecharge);
+//        return new ResponseBean(200,OrderStatusEnum.SUCCESS.getCode(),OrderStatusEnum.SUCCESS.getContent());
+//
         JSONObject jsonObject=queryApi(rechargeReqDto.getBizType(),ApiTypeEnum.SubmitOrder.getCode(),param);
         if (jsonObject==null)
         {

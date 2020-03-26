@@ -95,9 +95,11 @@ spring:
         connectionProperties: druid.stat.mergeSql\=true;druid.stat.slowSqlMillis\=5000
       datasource:
         master:
-          url: jdbc:mysql://122.112.236.187:3306/jeecg-boot-os?characterEncoding=UTF-8&useUnicode=true&useSSL=false
+          #url: jdbc:mysql://122.112.236.187:3306/jeecg-boot-os?characterEncoding=UTF-8&useUnicode=true&useSSL=false
+          url: jdbc:mysql://localhost:3306/jeecg-boot-os?characterEncoding=UTF-8&useUnicode=true&useSSL=false
           username: root
-          password: betterway757!
+          #password: betterway757!
+          password: 123456
           driver-class-name: com.mysql.jdbc.Driver
           # 多数据源配置
           #multi-datasource1:
