@@ -135,41 +135,41 @@ public class VcRechargeServiceImpl implements VcRechargeService {
         log.debug("开始访问，充值API，参数："+param);
 //
         //todo 测试代码
-        vcOrderRecharge.setRequestCode("OK");
-        vcOrderRecharge.setRequestStatus("1");
-        vcOrderRecharge.setRequestMsg("成功");
-        vcOrderRechargeService.save(vcOrderRecharge);
-        return new ResponseBean(200,OrderStatusEnum.SUCCESS.getCode(),OrderStatusEnum.SUCCESS.getContent());
-
-//        JSONObject jsonObject=queryApi(rechargeReqDto.getBizType(),ApiTypeEnum.SubmitOrder.getCode(),param);
-//        if (jsonObject==null)
-//        {
-//            vcOrderRecharge.setOrderStatus(OrderStatusEnum.ERROR.getValue());
-//            log.info("访问充值API，网络访问失败！！！");
-//            vcOrderRecharge.setRequestStatus("-500");
-//            vcOrderRecharge.setRequestMsg("网络连接失败");
-//            vcOrderRechargeService.save(vcOrderRecharge);
-//            return new ResponseBean(500,"网络访问失败！！！","网络访问失败！！！");
-//        }
-//        log.debug("访问充值API，成功");
-//        vcOrderRecharge.setRequestCode(jsonObject.getString("code"));
-//        vcOrderRecharge.setRequestStatus(jsonObject.getString("status"));
-//        vcOrderRecharge.setRequestMsg(jsonObject.getString("msg"));
-//
-//        if (ApiStatusEnum.ERROR.getCode().equals(jsonObject.getString("status"))){
-//            log.info("访问充值API，结果失败,失败信息："+jsonObject.getString("msg"));
-//            vcOrderRecharge.setOrderStatus(OrderStatusEnum.FAILED.getValue());
-//            vcOrderRechargeService.save(vcOrderRecharge);
-//            return new ResponseBean(400,jsonObject.getString("code"),jsonObject.getString("msg"));
-//        }
-//
-//
-//        String orderStatus=jsonObject.getString("OrderStatus");
-//        OrderStatusEnum orderStatusEnum=OrderStatusEnum.getOrderStatusEnumByCode(orderStatus);
-//        vcOrderRecharge.setOrderStatus(orderStatusEnum.getValue());
-//        log.info("访问充值API，访问成功,订单 状态："+orderStatusEnum.getContent());
+//        vcOrderRecharge.setRequestCode("OK");
+//        vcOrderRecharge.setRequestStatus("1");
+//        vcOrderRecharge.setRequestMsg("成功");
 //        vcOrderRechargeService.save(vcOrderRecharge);
-//        return new ResponseBean(200,orderStatus,orderStatusEnum.getContent());
+//        return new ResponseBean(200,OrderStatusEnum.SUCCESS.getCode(),OrderStatusEnum.SUCCESS.getContent());
+
+        JSONObject jsonObject=queryApi(rechargeReqDto.getBizType(),ApiTypeEnum.SubmitOrder.getCode(),param);
+        if (jsonObject==null)
+        {
+            vcOrderRecharge.setOrderStatus(OrderStatusEnum.ERROR.getValue());
+            log.info("访问充值API，网络访问失败！！！");
+            vcOrderRecharge.setRequestStatus("-500");
+            vcOrderRecharge.setRequestMsg("网络连接失败");
+            vcOrderRechargeService.save(vcOrderRecharge);
+            return new ResponseBean(500,"网络访问失败！！！","网络访问失败！！！");
+        }
+        log.debug("访问充值API，成功");
+        vcOrderRecharge.setRequestCode(jsonObject.getString("code"));
+        vcOrderRecharge.setRequestStatus(jsonObject.getString("status"));
+        vcOrderRecharge.setRequestMsg(jsonObject.getString("msg"));
+
+        if (ApiStatusEnum.ERROR.getCode().equals(jsonObject.getString("status"))){
+            log.info("访问充值API，结果失败,失败信息："+jsonObject.getString("msg"));
+            vcOrderRecharge.setOrderStatus(OrderStatusEnum.FAILED.getValue());
+            vcOrderRechargeService.save(vcOrderRecharge);
+            return new ResponseBean(400,jsonObject.getString("code"),jsonObject.getString("msg"));
+        }
+
+
+        String orderStatus=jsonObject.getString("OrderStatus");
+        OrderStatusEnum orderStatusEnum=OrderStatusEnum.getOrderStatusEnumByCode(orderStatus);
+        vcOrderRecharge.setOrderStatus(orderStatusEnum.getValue());
+        log.info("访问充值API，访问成功,订单 状态："+orderStatusEnum.getContent());
+        vcOrderRechargeService.save(vcOrderRecharge);
+        return new ResponseBean(200,orderStatus,orderStatusEnum.getContent());
     }
 
     @Override
