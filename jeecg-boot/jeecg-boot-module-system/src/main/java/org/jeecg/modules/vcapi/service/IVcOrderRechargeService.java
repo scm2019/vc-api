@@ -1,5 +1,7 @@
 package org.jeecg.modules.vcapi.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.jeecg.modules.vcapi.entity.VcOrderRecharge;
 
@@ -17,4 +19,7 @@ public interface IVcOrderRechargeService extends IService<VcOrderRecharge> {
 
     List<VcOrderRecharge> getAgainCallBack();
 
+    IPage<VcOrderRecharge> queryPage(Page<VcOrderRecharge> page, VcOrderRecharge vcOrderRecharge, Boolean isAdmin, String username);
+
+    List<VcOrderRecharge> exportExcelData(VcOrderRecharge vcOrderRecharge, Boolean isAdmin, String username);
 }

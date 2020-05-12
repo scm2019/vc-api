@@ -123,4 +123,7 @@ public interface ISysUserService extends IService<SysUser> {
 	 */
 	Result checkUserIsEffective(SysUser sysUser);
 
+    List<SysUser> getAllInCompleteCustomer(String userId);
+
+    List<SysUser> getUsersByRoleCode(String code,Boolean isAdmin,String username);
 }

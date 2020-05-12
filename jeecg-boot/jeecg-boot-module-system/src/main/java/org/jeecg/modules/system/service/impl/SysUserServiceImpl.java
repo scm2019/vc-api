@@ -257,4 +257,18 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 		}
 		return result;
 	}
+
+	/**
+	 * 获取所有的还未绑定客户信息的客户角色的数据
+	 * @return
+	 */
+	@Override
+	public List<SysUser> getAllInCompleteCustomer(String userId) {
+		return userMapper.getAllInCompleteCustomer(userId);
+	}
+
+	@Override
+	public List<SysUser> getUsersByRoleCode(String code,Boolean isAdmin,String username) {
+		return userMapper.getUsersByRoleCode(code,isAdmin,username);
+	}
 }

@@ -37,5 +37,42 @@
 	<select id="getUserByEmail" resultType="org.jeecg.modules.system.entity.SysUser">
 	select * from  sys_user  where email = #{email} and del_flag = '0'
 	</select>
-	
+
+	<select id="getAllInCompleteCustomer" resultType="org.jeecg.modules.system.entity.SysUser">
+		SELECT
+			u.username,
+			u.id
+		FROM
+			sys_user u
+		left join sys_user_role ur on u.id = ur.user_id
+		left join sys_role r on ur.role_id = r.id
+		LEFT JOIN vc_customer c on u.id = c.user_id
+		where  (c.id is null
+		<if test="userId != null and userId != ''">
+           or c.user_id =#{userId}
+		</if>
+		)
+		and r.role_code = 'customer'
+		order by u.create_time desc
+	</select>
+
+
+	<select id="getUsersByRoleCode" resultType="org.jeecg.modules.system.entity.SysUser">
+		SELECT
+		u.username,
+		u.id
+		FROM
+		sys_user u
+		left join sys_user_role ur on u.id = ur.user_id
+		left join sys_role r on ur.role_id = r.id
+		<where>
+			<if test="code != null and code != ''">
+				and r.role_code = #{code}
+			</if>
+			<if test="isAdmin != null and isAdmin == false and userName != null">
+                and username =#{userName}
+			</if>
+		</where>
+		order by u.create_time desc
+	</select>
 </mapper>

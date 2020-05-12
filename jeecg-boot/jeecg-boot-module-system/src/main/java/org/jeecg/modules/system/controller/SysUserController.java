@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -26,10 +27,7 @@ import org.jeecg.common.system.vo.LoginUser;
 import org.jeecg.common.util.PasswordUtil;
 import org.jeecg.common.util.RedisUtil;
 import org.jeecg.common.util.oConvertUtils;
-import org.jeecg.modules.system.entity.SysDepart;
-import org.jeecg.modules.system.entity.SysUser;
-import org.jeecg.modules.system.entity.SysUserDepart;
-import org.jeecg.modules.system.entity.SysUserRole;
+import org.jeecg.modules.system.entity.*;
 import org.jeecg.modules.system.model.DepartIdModel;
 import org.jeecg.modules.system.service.ISysDepartService;
 import org.jeecg.modules.system.service.ISysUserDepartService;
@@ -37,11 +35,13 @@ import org.jeecg.modules.system.service.ISysUserRoleService;
 import org.jeecg.modules.system.service.ISysUserService;
 import org.jeecg.modules.system.vo.SysDepartUsersVO;
 import org.jeecg.modules.system.vo.SysUserRoleVO;
+import org.jeecg.modules.vcapi.enums.RoleCodeEnum;
 import org.jeecgframework.poi.excel.ExcelImportUtil;
 import org.jeecgframework.poi.excel.def.NormalExcelConstants;
 import org.jeecgframework.poi.excel.entity.ExportParams;
 import org.jeecgframework.poi.excel.entity.ImportParams;
 import org.jeecgframework.poi.excel.view.JeecgEntityExcelView;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -237,6 +237,60 @@ public class SysUserController {
 
     }
 
+    /**
+     * 根据token 查询用户详情
+     * @param
+     * @return
+     */
+    @GetMapping("/queryUserInfoByToken")
+    public Result<LoginUser> queryUserInfoByToken(){
+        Result<LoginUser> result = new Result<>();
+        LoginUser user=(LoginUser) SecurityUtils.getSubject().getPrincipal();
+        LoginUser userDetail=new LoginUser();
+        BeanUtils.copyProperties(user,userDetail);
+        userDetail.setRoles(sysUserService.getRole(user.getUsername()));
+        userDetail.setPassword(null);
+        result.setResult(userDetail);
+        result.setSuccess(true);
+        return result;
+    }
+
+    /**
+     * 根据token 查询用户详情
+     * @param
+     * @return
+     */
+    @GetMapping("/getAllInCompleteCustomer")
+    public Result<List<SysUser>> getAllInCompleteCustomer(@RequestParam(value = "userId",required = false)String userId){
+        Result<List<SysUser>> result = new Result<>();
+        List<SysUser> users = sysUserService.getAllInCompleteCustomer(userId);
+        result.setSuccess(true);
+        result.setResult(users);
+        return result;
+    }
+
+    /**
+     *  根据角色code 查询所有对应的用户  根据当前用户token 判断是否是admin 是的话展示全部，不是的话展示自己的数据
+     * @param
+     * @return
+     */
+    @GetMapping("/getUsersByRoleCode")
+    public Result<List<SysUser>> getUsersByRoleCode(@RequestParam(value = "code",required = false)String code){
+        Result<List<SysUser>> result = new Result<>();
+        LoginUser sysUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
+        Boolean isAdmin = false;
+        if(sysUserRoleService.getUserRole(sysUser.getUsername()).stream().filter(role->(RoleCodeEnum.ADMIN.getRoleCode().equals(role))).collect(Collectors.toList()).size()>0){
+            //管理员的查看全部人员的
+            isAdmin = true;
+        }else{
+            isAdmin = false;
+        }
+        List<SysUser> users = sysUserService.getUsersByRoleCode(code,isAdmin,sysUser.getUsername());
+        result.setSuccess(true);
+        result.setResult(users);
+        return result;
+    }
+
     @RequestMapping(value = "/queryById", method = RequestMethod.GET)
     public Result<SysUser> queryById(@RequestParam(name = "id", required = true) String id) {
         Result<SysUser> result = new Result<SysUser>();
@@ -251,7 +305,7 @@ public class SysUserController {
     }
 
     @RequestMapping(value = "/queryUserRole", method = RequestMethod.GET)
-    public Result<List<String>> queryUserRole(@RequestParam(name = "userid", required = true) String userid) {
+    public Result<List<String>> queryUserRole(@RequestParam(name = "userId", required = false) String userid) {
         Result<List<String>> result = new Result<>();
         List<String> list = new ArrayList<String>();
         List<SysUserRole> userRole = sysUserRoleService.list(new QueryWrapper<SysUserRole>().lambda().eq(SysUserRole::getUserId, userid));

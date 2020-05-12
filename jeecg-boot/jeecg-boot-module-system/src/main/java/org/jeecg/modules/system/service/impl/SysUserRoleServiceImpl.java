@@ -1,5 +1,6 @@
 package org.jeecg.modules.system.service.impl;
 
+import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,7 +60,16 @@ public class SysUserRoleServiceImpl extends ServiceImpl<SysUserRoleMapper, SysUs
 		}
 		return map;
 	}
-	
+
+	@Override
+	public List<String> getUserRole(String username) {
+		List<String> roleCodeList = this.baseMapper.getRoleByUserName(username);
+		if (roleCodeList==null){
+			roleCodeList=new ArrayList<>();
+		}
+		return roleCodeList;
+	}
+
 	/**
 	 * queryUserRole调用的方法
 	 * @param roleList

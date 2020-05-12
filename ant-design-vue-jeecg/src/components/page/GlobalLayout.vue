@@ -69,9 +69,9 @@
       </a-layout-content>
 
       <!-- layout footer -->
-      <a-layout-footer style="padding: 0px">
-        <global-footer/>
-      </a-layout-footer>
+<!--      <a-layout-footer style="padding: 0px">-->
+<!--        <global-footer/>-->
+<!--      </a-layout-footer>-->
     </a-layout>
 
     <setting-drawer></setting-drawer>
@@ -81,7 +81,7 @@
 <script>
   import SideMenu from '@/components/menu/SideMenu'
   import GlobalHeader from '@/components/page/GlobalHeader'
-  import GlobalFooter from '@/components/page/GlobalFooter'
+  // import GlobalFooter from '@/components/page/GlobalFooter'
   import SettingDrawer from '@/components/setting/SettingDrawer'
   import { triggerWindowResizeEvent } from '@/utils/util'
   import { mapState, mapActions } from 'vuex'
@@ -92,7 +92,7 @@
     components: {
       SideMenu,
       GlobalHeader,
-      GlobalFooter,
+      //GlobalFooter,
       SettingDrawer
     },
     mixins: [mixin, mixinDevice],

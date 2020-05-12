@@ -3,11 +3,16 @@ package org.jeecg.modules.vcapi.controller;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.shiro.SecurityUtils;
+import org.jeecg.common.api.vo.Result;
 import org.jeecg.common.system.vo.DictModel;
+import org.jeecg.common.system.vo.LoginUser;
 import org.jeecg.modules.shiro.vo.ResponseBean;
+import org.jeecg.modules.system.service.ISysUserRoleService;
 import org.jeecg.modules.system.service.impl.SysDictServiceImpl;
 import org.jeecg.modules.vcapi.entity.req.CallBackReqDto;
 import org.jeecg.modules.vcapi.entity.req.RechargeReqDto;
+import org.jeecg.modules.vcapi.enums.RoleCodeEnum;
 import org.jeecg.modules.vcapi.service.VcRechargeService;
 import org.jeecg.modules.vcapi.util.SignUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +23,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 /**
  * @description: 虚拟货币充值api接口
@@ -34,11 +40,13 @@ public class VcRechargeController {
 
     private final VcRechargeService vcRechargeService;
     private final SysDictServiceImpl sysDictService;
+    private final ISysUserRoleService userRoleService;
 
     @Autowired
-    public VcRechargeController(VcRechargeService vcRechargeService, SysDictServiceImpl sysDictService) {
+    public VcRechargeController(VcRechargeService vcRechargeService, SysDictServiceImpl sysDictService,ISysUserRoleService userRoleService) {
         this.vcRechargeService = vcRechargeService;
         this.sysDictService = sysDictService;
+        this.userRoleService = userRoleService;
     }
 
 
@@ -72,6 +80,17 @@ public class VcRechargeController {
     @ApiOperation("充值API接口")
     public ResponseBean recharge(@RequestBody RechargeReqDto rechargeReqDto) {
        return vcRechargeService.recharge(rechargeReqDto);
+    }
+
+    @PostMapping("rechargeForAdmin")
+    @ApiOperation("专为Admin设置的充值API接口")
+    public ResponseBean rechargeForAdmin(@RequestBody RechargeReqDto rechargeReqDto) {
+        LoginUser sysUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
+        if(userRoleService.getUserRole(sysUser.getUsername()).stream().filter(role->(RoleCodeEnum.ADMIN.getRoleCode().equals(role))).collect(Collectors.toList()).size()<=0){
+            return new ResponseBean(400, "", "您暂时没有该操作的权限！！！");
+        }else{
+            return vcRechargeService.rechargeForAdmin(rechargeReqDto);
+        }
     }
 
     @GetMapping("queryOrder")

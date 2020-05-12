@@ -8,6 +8,93 @@
             <if test="orderNo!=null">order_no=#{orderNo}</if>
             <if test="accountVal!=null">and account_val=#{accountVal}</if>
             <if test="bizType!=null">and biz_type=#{bizType}</if>
+            <if test="createBy!=null">and create_by=#{createBy}</if>
         </where>
     </select>
+
+
+    <select id="queryPage" resultType="org.jeecg.modules.vcapi.entity.VcOrderRecharge">
+        SELECT
+        <if test="isAdmin != null and isAdmin == true">
+            vor.*
+        </if>
+        <if test="isAdmin == null or isAdmin == false">
+            vor.id,
+            vor.account_val,
+            vor.order_no,
+            vor.product_id,
+            vor.buy_num,
+            vor.create_by,
+            vor.create_time,
+            vor.update_by,
+            vor.update_time
+        </if>
+        ,p.`name` as productName
+        ,tmp.item_text AS bizType
+        FROM
+        vc_order_recharge vor
+        LEFT JOIN vc_product p ON vor.product_id = p.id
+        LEFT JOIN (
+        SELECT
+        item.item_value,
+        item.item_text
+        FROM
+        sys_dict dict
+        LEFT JOIN sys_dict_item item ON dict.id = item.dict_id
+        WHERE
+        dict.dict_code = 'BizType'
+        ) tmp ON tmp.item_value = vor.biz_type
+        <where>
+            <if test="item.orderNo!=null and item.orderNo != ''">vor.order_no like concat ('%',#{item.orderNo},'%')</if>
+            <if test="item.accountVal!=null and item.accountVal !=''">and vor.account_val like concat('%',#{item.accountVal},'%')</if>
+            <if test="item.bizType!=null and item.bizType != ''">and vor.biz_type=#{item.bizType}</if>
+            <if test="item.createBy!=null and item.createBy !=''">and vor.create_by=#{item.createBy}</if>
+            <if test="isAdmin == null or isAdmin == false">
+                vor.create_by = #{username}
+            </if>
+        </where>
+    </select>
+
+    <select id="exportExcelData" resultType="org.jeecg.modules.vcapi.entity.VcOrderRecharge">
+        SELECT
+        <if test="isAdmin != null and isAdmin == true">
+            vor.*
+        </if>
+        <if test="isAdmin == null or isAdmin == false">
+            vor.id,
+            vor.account_val,
+            vor.order_no,
+            vor.product_id,
+            vor.buy_num,
+            vor.create_by,
+            vor.create_time,
+            vor.update_by,
+            vor.update_time
+        </if>
+        ,p.`name` as productName
+        ,tmp.item_text AS bizType
+        FROM
+        vc_order_recharge vor
+        LEFT JOIN vc_product p ON vor.product_id = p.id
+        LEFT JOIN (
+        SELECT
+        item.item_value,
+        item.item_text
+        FROM
+        sys_dict dict
+        LEFT JOIN sys_dict_item item ON dict.id = item.dict_id
+        WHERE
+        dict.dict_code = 'BizType'
+        ) tmp ON tmp.item_value = vor.biz_type
+        <where>
+            <if test="item.orderNo!=null and item.orderNo != ''">vor.order_no like concat ('%',#{item.orderNo},'%')</if>
+            <if test="item.accountVal!=null and item.accountVal !=''">and vor.account_val like concat('%',#{item.accountVal},'%')</if>
+            <if test="item.bizType!=null and item.bizType != ''">and vor.biz_type=#{item.bizType}</if>
+            <if test="item.createBy!=null and item.createBy !=''">and vor.create_by=#{item.createBy}</if>
+            <if test="isAdmin == null or isAdmin == false">
+                vor.create_by = #{username}
+            </if>
+        </where>
+    </select>
+
 </mapper>

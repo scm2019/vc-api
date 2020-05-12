@@ -2,12 +2,10 @@ package org.jeecg.modules.vcapi.util;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jeecg.common.util.MD5Util;
+import org.apache.commons.codec.binary.Base64;
 
 import java.security.MessageDigest;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
+import java.util.*;
 
 /**
  * @description: 签名计算工具类
@@ -67,5 +65,32 @@ public class SignUtil {
         }
         return hexValue.toString();
     }
+
+    /**
+     * 加密解密算法 执行一次加密，两次解密
+     */
+    public static String convertMD5(String inStr){
+
+        char[] a = inStr.toCharArray();
+        for (int i = 0; i < a.length; i++){
+            a[i] = (char) (a[i] ^ 't');
+        }
+        String s = new String(a);
+        return s;
+
+    }
+
+
+    //base64 解码
+    public static String decode(byte[] bytes) {
+        return new String(Base64.decodeBase64(bytes));
+    }
+
+    //base64 编码
+    public static String encode(byte[] bytes) {
+        return new String(Base64.encodeBase64(bytes));
+    }
+
+
 
 }
