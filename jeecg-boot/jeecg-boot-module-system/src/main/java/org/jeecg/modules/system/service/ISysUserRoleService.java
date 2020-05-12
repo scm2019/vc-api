@@ -1,5 +1,7 @@
 package org.jeecg.modules.system.service;
 
+import java.util.BitSet;
+import java.util.List;
 import java.util.Map;
 
 import org.jeecg.modules.system.entity.SysUserRole;
@@ -21,4 +23,6 @@ public interface ISysUserRoleService extends IService<SysUserRole> {
 	 * @return
 	 */
 	Map<String,String> queryUserRole();
+
+	List<String> getUserRole(String username);
 }

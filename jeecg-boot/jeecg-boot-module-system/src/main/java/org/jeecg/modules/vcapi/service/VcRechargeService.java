@@ -23,6 +23,7 @@ public interface VcRechargeService {
       */
      ResponseBean getProductByBizType(String bizType);
 
+
      /**
       * @Author: Mr.Luke
       * @Description: 查询用户余额
@@ -41,6 +42,8 @@ public interface VcRechargeService {
       */
      ResponseBean recharge(@RequestBody RechargeReqDto rechargeReqDto);
 
+     ResponseBean rechargeForAdmin(RechargeReqDto rechargeReqDto);
+
      ResponseBean queryOrder(String orderNo,String bizType);
 
      String callBack(CallBackReqDto callBackReqDto);
@@ -53,5 +56,7 @@ public interface VcRechargeService {
       * @return: java.lang.String
       */
      String againCallBack();
+
+
 
 }

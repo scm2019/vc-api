@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.Date;
 import java.math.BigDecimal;
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
@@ -11,6 +12,7 @@ import lombok.Builder;
 import lombok.Data;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.NoArgsConstructor;
+import org.jeecgframework.poi.excel.annotation.ExcelIgnore;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.jeecgframework.poi.excel.annotation.Excel;
 import org.jeecg.common.aspect.annotation.Dict;
@@ -32,6 +34,7 @@ public class VcOrderRecharge implements Serializable {
 	/**id*/
 	@TableId(type = IdType.ID_WORKER_STR)
 	private String id;
+
 	/**负责充值的账户ID*/
 	@Excel(name = "负责充值的账户ID", width = 15)
 	private String userId;
@@ -47,6 +50,11 @@ public class VcOrderRecharge implements Serializable {
 	/**标准产品 ID(签名)*/
 	@Excel(name = "标准产品 ID(签名)", width = 15)
 	private String productId;
+
+	@Excel(name = "标准产品名称", width = 15)
+	@TableField(exist = false)
+	private String productName;
+
 	/**购买数量*/
 	@Excel(name = "购买数量", width = 15)
 	private Integer buyNum;
@@ -87,7 +95,7 @@ public class VcOrderRecharge implements Serializable {
     @DateTimeFormat(pattern="yyyy-MM-dd")
 	private Date callbackTime;
 
-	@Excel(name = "回调地址", width = 1000)
+	@Excel(name = "回调地址", width = 255)
 	private String callbackAddress;
 
 	private String createBy;

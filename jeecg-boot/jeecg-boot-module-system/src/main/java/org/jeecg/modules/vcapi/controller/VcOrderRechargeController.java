@@ -1,13 +1,15 @@
 package org.jeecg.modules.vcapi.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.shiro.SecurityUtils;
 import org.jeecg.common.api.vo.Result;
-import org.jeecg.common.system.query.QueryGenerator;
+import org.jeecg.common.system.vo.LoginUser;
 import org.jeecg.common.util.oConvertUtils;
+import org.jeecg.modules.system.service.ISysUserRoleService;
 import org.jeecg.modules.vcapi.entity.VcOrderRecharge;
+import org.jeecg.modules.vcapi.enums.RoleCodeEnum;
 import org.jeecg.modules.vcapi.service.IVcOrderRechargeService;
 import org.jeecgframework.poi.excel.ExcelImportUtil;
 import org.jeecgframework.poi.excel.def.NormalExcelConstants;
@@ -38,8 +40,17 @@ import java.util.stream.Collectors;
 @RequestMapping("/vcapi/vcOrderRecharge")
 @Slf4j
 public class VcOrderRechargeController {
+
+	private final IVcOrderRechargeService vcOrderRechargeService;
+
+	private final ISysUserRoleService sysUserRoleService;
+
+
 	@Autowired
-	private IVcOrderRechargeService vcOrderRechargeService;
+	public VcOrderRechargeController(IVcOrderRechargeService vcOrderRechargeService,ISysUserRoleService sysUserRoleService){
+		this.vcOrderRechargeService = vcOrderRechargeService;
+		this.sysUserRoleService = sysUserRoleService;
+	}
 	
 	/**
 	  * 分页列表查询
@@ -49,20 +60,50 @@ public class VcOrderRechargeController {
 	 * @param req
 	 * @return
 	 */
-	@GetMapping(value = "/list")
-	public Result<IPage<VcOrderRecharge>> queryPageList(VcOrderRecharge vcOrderRecharge,
-														@RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
-														@RequestParam(name="pageSize", defaultValue="10") Integer pageSize,
-														HttpServletRequest req) {
-		Result<IPage<VcOrderRecharge>> result = new Result<IPage<VcOrderRecharge>>();
-		QueryWrapper<VcOrderRecharge> queryWrapper = QueryGenerator.initQueryWrapper(vcOrderRecharge, req.getParameterMap());
-		Page<VcOrderRecharge> page = new Page<VcOrderRecharge>(pageNo, pageSize);
-		IPage<VcOrderRecharge> pageList = vcOrderRechargeService.page(page, queryWrapper);
-		result.setSuccess(true);
-		result.setResult(pageList);
-		return result;
-	}
-	
+//	@GetMapping(value = "/list")
+//	public Result<?> queryPageList(VcOrderRecharge vcOrderRecharge,
+//														@RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
+//														@RequestParam(name="pageSize", defaultValue="10") Integer pageSize,
+//														HttpServletRequest req) {
+//		Result<IPage<VcOrderRecharge>> result = new Result<IPage<VcOrderRecharge>>();
+//		QueryWrapper<VcOrderRecharge> queryWrapper = QueryGenerator.initQueryWrapper(vcOrderRecharge, req.getParameterMap());
+//		Page<VcOrderRecharge> page = new Page<VcOrderRecharge>(pageNo, pageSize);
+//		IPage<VcOrderRecharge> pageList = vcOrderRechargeService.page(page, queryWrapper);
+//		result.setSuccess(true);
+//		result.setResult(pageList);
+//		return result;
+//	}
+
+	 /**
+	  * 分页列表查询
+	  * @param vcOrderRecharge
+	  * @param pageNo
+	  * @param pageSize
+	  * @param req
+	  * @return
+	  */
+	 @GetMapping(value = "/pageList")
+	 public Result<?> queryList(VcOrderRecharge vcOrderRecharge,
+									@RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
+									@RequestParam(name="pageSize", defaultValue="10") Integer pageSize,
+									HttpServletRequest req) {
+		 Result<IPage<VcOrderRecharge>> result = new Result<IPage<VcOrderRecharge>>();
+		 Page<VcOrderRecharge> page = new Page<VcOrderRecharge>(pageNo, pageSize);
+		 LoginUser sysUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
+		 Boolean isAdmin = false;
+		 if(sysUserRoleService.getUserRole(sysUser.getUsername()).stream().filter(role->(RoleCodeEnum.ADMIN.getRoleCode().equals(role))).collect(Collectors.toList()).size()>0){
+			 //管理员的查看全部人员的
+			 isAdmin = true;
+		 }else if(sysUserRoleService.getUserRole(sysUser.getUsername()).stream().filter(role->(RoleCodeEnum.CUSTOMER.getRoleCode().equals(role))).collect(Collectors.toList()).size()>0){
+			 isAdmin = false;
+		 }else{
+			 return Result.error("您暂时没有权限查看该页面");
+		 }
+		 IPage<VcOrderRecharge> pageList = vcOrderRechargeService.queryPage(page, vcOrderRecharge,isAdmin,sysUser.getUsername());
+		 result.setSuccess(true);
+		 result.setResult(pageList);
+		 return result;
+	 }
 	/**
 	  *   添加
 	 * @param vcOrderRecharge
@@ -110,6 +151,10 @@ public class VcOrderRechargeController {
 	 */
 	@DeleteMapping(value = "/delete")
 	public Result<?> delete(@RequestParam(name="id",required=true) String id) {
+		LoginUser sysUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
+		if(sysUserRoleService.getUserRole(sysUser.getUsername()).stream().filter(role->(RoleCodeEnum.ADMIN.getRoleCode().equals(role))).collect(Collectors.toList()).size() <=0) {
+			return Result.error("您暂时无该操作的权限!!!");
+		}
 		try {
 			vcOrderRechargeService.removeById(id);
 		} catch (Exception e) {
@@ -127,11 +172,16 @@ public class VcOrderRechargeController {
 	@DeleteMapping(value = "/deleteBatch")
 	public Result<VcOrderRecharge> deleteBatch(@RequestParam(name="ids",required=true) String ids) {
 		Result<VcOrderRecharge> result = new Result<VcOrderRecharge>();
-		if(ids==null || "".equals(ids.trim())) {
-			result.error500("参数不识别！");
-		}else {
-			this.vcOrderRechargeService.removeByIds(Arrays.asList(ids.split(",")));
-			result.success("删除成功!");
+		LoginUser sysUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
+		if(sysUserRoleService.getUserRole(sysUser.getUsername()).stream().filter(role->(RoleCodeEnum.ADMIN.getRoleCode().equals(role))).collect(Collectors.toList()).size() <=0) {
+			result.error500("您暂时无该操作的权限！！！");
+		}else{
+			if(ids==null || "".equals(ids.trim())) {
+				result.error500("参数不识别！");
+			}else {
+				this.vcOrderRechargeService.removeByIds(Arrays.asList(ids.split(",")));
+				result.success("删除成功!");
+			}
 		}
 		return result;
 	}
@@ -158,28 +208,33 @@ public class VcOrderRechargeController {
       * 导出excel
    *
    * @param request
-   * @param response
    */
   @RequestMapping(value = "/exportXls")
   public ModelAndView exportXls(HttpServletRequest request, VcOrderRecharge vcOrderRecharge) {
-      // Step.1 组装查询条件查询数据
-      QueryWrapper<VcOrderRecharge> queryWrapper = QueryGenerator.initQueryWrapper(vcOrderRecharge, request.getParameterMap());
-      List<VcOrderRecharge> pageList = vcOrderRechargeService.list(queryWrapper);
+	  LoginUser sysUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
+	  Boolean isAdmin = false;
+	  if(sysUserRoleService.getUserRole(sysUser.getUsername()).stream().filter(role->(RoleCodeEnum.ADMIN.getRoleCode().equals(role))).collect(Collectors.toList()).size()>0){
+		  //管理员的查看全部人员的
+		  isAdmin = true;
+	  }else if(sysUserRoleService.getUserRole(sysUser.getUsername()).stream().filter(role->(RoleCodeEnum.CUSTOMER.getRoleCode().equals(role))).collect(Collectors.toList()).size()>0){
+		  isAdmin = false;
+	  }
+	  List<VcOrderRecharge> list = vcOrderRechargeService.exportExcelData( vcOrderRecharge,isAdmin,sysUser.getUsername());
       // Step.2 AutoPoi 导出Excel
       ModelAndView mv = new ModelAndView(new JeecgEntityExcelView());
       // 过滤选中数据
       String selections = request.getParameter("selections");
       if(oConvertUtils.isEmpty(selections)) {
-    	  mv.addObject(NormalExcelConstants.DATA_LIST, pageList);
+    	  mv.addObject(NormalExcelConstants.DATA_LIST, list);
       }else {
     	  List<String> selectionList = Arrays.asList(selections.split(","));
-    	  List<VcOrderRecharge> exportList = pageList.stream().filter(item -> selectionList.contains(item.getId())).collect(Collectors.toList());
+    	  List<VcOrderRecharge> exportList = list.stream().filter(item -> selectionList.contains(item.getId())).collect(Collectors.toList());
     	  mv.addObject(NormalExcelConstants.DATA_LIST, exportList);
       }
       //导出文件名称
       mv.addObject(NormalExcelConstants.FILE_NAME, "vc_order_recharge列表");
       mv.addObject(NormalExcelConstants.CLASS, VcOrderRecharge.class);
-      mv.addObject(NormalExcelConstants.PARAMS, new ExportParams("vc_order_recharge列表数据", "导出人:Jeecg", "导出信息"));
+      mv.addObject(NormalExcelConstants.PARAMS, new ExportParams("vc_order_recharge列表数据", "导出人:"+sysUser.getUsername(), "导出信息"));
       return mv;
   }
 
@@ -192,6 +247,10 @@ public class VcOrderRechargeController {
    */
   @RequestMapping(value = "/importExcel", method = RequestMethod.POST)
   public Result<?> importExcel(HttpServletRequest request, HttpServletResponse response) {
+	  LoginUser sysUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
+	  if(sysUserRoleService.getUserRole(sysUser.getUsername()).stream().filter(role->(RoleCodeEnum.ADMIN.getRoleCode().equals(role))).collect(Collectors.toList()).size()<=0){
+		  return Result.error("您暂时没有该操作权限!!!");
+	  }
       MultipartHttpServletRequest multipartRequest = (MultipartHttpServletRequest) request;
       Map<String, MultipartFile> fileMap = multipartRequest.getFileMap();
       for (Map.Entry<String, MultipartFile> entity : fileMap.entrySet()) {

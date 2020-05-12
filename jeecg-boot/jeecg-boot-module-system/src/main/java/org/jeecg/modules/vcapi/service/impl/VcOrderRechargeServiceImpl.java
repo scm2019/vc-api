@@ -1,6 +1,8 @@
 package org.jeecg.modules.vcapi.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.jeecg.modules.vcapi.entity.VcOrderRecharge;
 import org.jeecg.modules.vcapi.mapper.VcOrderRechargeMapper;
@@ -28,6 +30,7 @@ public class VcOrderRechargeServiceImpl extends ServiceImpl<VcOrderRechargeMappe
         this.vcOrderRechargeMapper = vcOrderRechargeMapper;
     }
 
+
     @Override
     public List<VcOrderRecharge> getVcOrderRechargeList(VcOrderRecharge vcOrderRecharge) {
         return vcOrderRechargeMapper.getVcOrderRechargeNew(vcOrderRecharge);
@@ -43,4 +46,15 @@ public class VcOrderRechargeServiceImpl extends ServiceImpl<VcOrderRechargeMappe
         }
         return list;
     }
+
+    @Override
+    public IPage<VcOrderRecharge> queryPage(Page<VcOrderRecharge> page, VcOrderRecharge vcOrderRecharge, Boolean isAdmin, String username) {
+        return vcOrderRechargeMapper.queryPage(page,vcOrderRecharge,isAdmin,username);
+    }
+
+    @Override
+    public List<VcOrderRecharge> exportExcelData(VcOrderRecharge vcOrderRecharge, Boolean isAdmin, String username) {
+        return vcOrderRechargeMapper.exportExcelData(vcOrderRecharge,isAdmin,username);
+    }
+
 }

@@ -5,7 +5,8 @@ const api = {
   role: '/api/role',
   service: '/api/service',
   permission: '/api/permission',
-  permissionNoPager: '/api/permission/no-pager'
+  permissionNoPager: '/api/permission/no-pager',
+  vcpai: '/vcapi/vcOrderRecharge'
 }
 
 export default api

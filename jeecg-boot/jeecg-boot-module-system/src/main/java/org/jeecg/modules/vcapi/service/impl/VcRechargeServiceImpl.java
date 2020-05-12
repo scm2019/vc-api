@@ -3,16 +3,18 @@ package org.jeecg.modules.vcapi.service.impl;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.shiro.SecurityUtils;
+import org.jeecg.common.system.vo.LoginUser;
 import org.jeecg.common.util.IDUtils;
 import org.jeecg.modules.shiro.vo.ResponseBean;
+import org.jeecg.modules.vcapi.entity.VcCustomer;
 import org.jeecg.modules.vcapi.entity.VcOrderCallback;
 import org.jeecg.modules.vcapi.entity.VcOrderRecharge;
+import org.jeecg.modules.vcapi.entity.VcProduct;
 import org.jeecg.modules.vcapi.entity.req.CallBackReqDto;
 import org.jeecg.modules.vcapi.entity.req.RechargeReqDto;
 import org.jeecg.modules.vcapi.enums.*;
-import org.jeecg.modules.vcapi.service.IVcOrderCallbackService;
-import org.jeecg.modules.vcapi.service.IVcOrderRechargeService;
-import org.jeecg.modules.vcapi.service.VcRechargeService;
+import org.jeecg.modules.vcapi.service.*;
 import org.jeecg.modules.vcapi.util.SignUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import java.util.SortedMap;
@@ -42,8 +45,9 @@ public class VcRechargeServiceImpl implements VcRechargeService {
 
     private final RestTemplate restTemplate;
     private final IVcOrderRechargeService vcOrderRechargeService;
-    @Autowired
-    private IVcOrderCallbackService vcOrderCallbackService;
+    private final IVcOrderCallbackService vcOrderCallbackService;
+    private final IVcCustomerService customerService;
+    private final IVcProductService productService;
 
     @Value("${api.apiKey}")
     private String apiKey;
@@ -54,9 +58,13 @@ public class VcRechargeServiceImpl implements VcRechargeService {
 
 
     @Autowired
-    public VcRechargeServiceImpl(RestTemplate restTemplate, IVcOrderRechargeService vcOrderRechargeService) {
+    public VcRechargeServiceImpl(RestTemplate restTemplate, IVcOrderRechargeService vcOrderRechargeService,IVcOrderCallbackService vcOrderCallbackService,
+                                 IVcCustomerService vcCustomerService,IVcProductService vcProductService) {
         this.restTemplate = restTemplate;
         this.vcOrderRechargeService = vcOrderRechargeService;
+        this.vcOrderCallbackService = vcOrderCallbackService;
+        this.customerService = vcCustomerService;
+        this.productService = vcProductService;
     }
 
 
@@ -78,6 +86,7 @@ public class VcRechargeServiceImpl implements VcRechargeService {
         return new ResponseBean(200,jsonObject.getString("msg"),jsonObject.get("Products"));
     }
 
+
     @Override
     public ResponseBean getUserBalance(String bizType){
         if (bizType==null){
@@ -97,6 +106,114 @@ public class VcRechargeServiceImpl implements VcRechargeService {
 
     @Override
     public ResponseBean recharge(@RequestBody RechargeReqDto rechargeReqDto) {
+        VcOrderRecharge vcOrderRecharge = VcOrderRecharge.builder()
+                .orderNo(rechargeReqDto.getOrderNo())
+                .bizType(rechargeReqDto.getBizType())
+                .build();
+        List<VcOrderRecharge> vcOrderRechargeList = vcOrderRechargeService.getVcOrderRechargeList(vcOrderRecharge);
+        if (vcOrderRechargeList != null&&vcOrderRechargeList.size()>0) {
+            log.info("存在订单号相同的数据,id="+vcOrderRechargeList.get(0).getId());
+            return new ResponseBean(400, "", "存在订单号相同的数据！！！");
+        }
+        //查询当前这个用户的加款或者授信是否有值
+        LoginUser sysUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
+        VcCustomer customer = customerService.getCustomerByUserId(sysUser.getId());
+        BigDecimal zero = new BigDecimal(0);
+        if(null == customer || (customer.getMoney().equals(zero) &&  customer.getQuota().equals(zero))){
+            return new ResponseBean(400, "", "余额不足！！！");
+        }else{
+            VcProduct product = productService.getById(rechargeReqDto.getProductId());
+            if(null == product){
+                return new ResponseBean(400, "", "指定的订单产品不存在，或者已经下架！！！");
+            }else{
+                //默认为1，即为不打折
+                BigDecimal discount = new BigDecimal(1);
+                if(null != customer.getDiscount()){
+                    discount = customer.getDiscount().divide(new BigDecimal(10));
+                }
+                BigDecimal orderPrice = product.getPrice().multiply(new BigDecimal(rechargeReqDto.getBuyNum())).multiply(discount);
+                int priceIsEnought = orderPrice.compareTo(customer.getMoney());
+                if(priceIsEnought > 0){
+                   //订单金额超过加款的话，看看授信是否足够
+                    int quotaIsEnought = orderPrice.compareTo(customer.getQuota());
+                    if(quotaIsEnought > 0){
+                        return new ResponseBean(400, "", "余额不足！！！");
+                    }else{
+                        customer.setQuota(quotaIsEnought == 0? zero : customer.getQuota().subtract(orderPrice));
+                    }
+                }else{
+                    //说明订单金额等于加款,扣加款
+                    customer.setMoney(priceIsEnought == 0 ? zero : customer.getMoney().subtract(orderPrice));
+                }
+                //修改客户信息表
+                customerService.updateById(customer);
+            }
+        }
+        BeanUtils.copyProperties(rechargeReqDto, vcOrderRecharge);
+        SortedMap<Object, Object> param = new TreeMap<Object, Object>();
+        param.put("OrderNo", rechargeReqDto.getOrderNo());
+        param.put("ProductId", rechargeReqDto.getProductId());
+        param.put("AccountVal", rechargeReqDto.getAccountVal());
+        if (rechargeReqDto.getBuyNum() != null){
+            param.put("BuyNum", rechargeReqDto.getBuyNum());
+        }
+        if (rechargeReqDto.getCustomerIP() != null) {
+            param.put("CustomerIP", rechargeReqDto.getCustomerIP());
+        }
+        if (rechargeReqDto.getExtraData() != null){
+            param.put("ExtraData",rechargeReqDto.getExtraData());
+        }
+        vcOrderRecharge.setId(IDUtils.getID());
+
+        vcOrderRecharge.setUserId(userId);
+
+        vcOrderRecharge.setOrderStatus(OrderStatusEnum.WAIT.getValue());
+        Date date=new Date();
+        vcOrderRecharge.setCreateTime(date);
+        vcOrderRecharge.setUpdateTime(date);
+        vcOrderRecharge.setCallback(0);
+        log.debug("开始访问，充值API，参数："+param);
+//
+        //todo 测试代码
+        vcOrderRecharge.setRequestCode("OK");
+        vcOrderRecharge.setRequestStatus("1");
+        vcOrderRecharge.setRequestMsg("成功");
+        vcOrderRechargeService.save(vcOrderRecharge);
+        return new ResponseBean(200,OrderStatusEnum.SUCCESS.getCode(),OrderStatusEnum.SUCCESS.getContent());
+
+//        JSONObject jsonObject=queryApi(rechargeReqDto.getBizType(),ApiTypeEnum.SubmitOrder.getCode(),param);
+//        if (jsonObject==null)
+//        {
+//            vcOrderRecharge.setOrderStatus(OrderStatusEnum.ERROR.getValue());
+//            log.info("访问充值API，网络访问失败！！！");
+//            vcOrderRecharge.setRequestStatus("-500");
+//            vcOrderRecharge.setRequestMsg("网络连接失败");
+//            vcOrderRechargeService.save(vcOrderRecharge);
+//            return new ResponseBean(500,"网络访问失败！！！","网络访问失败！！！");
+//        }
+//        log.debug("访问充值API，成功");
+//        vcOrderRecharge.setRequestCode(jsonObject.getString("code"));
+//        vcOrderRecharge.setRequestStatus(jsonObject.getString("status"));
+//        vcOrderRecharge.setRequestMsg(jsonObject.getString("msg"));
+//
+//        if (ApiStatusEnum.ERROR.getCode().equals(jsonObject.getString("status"))){
+//            log.info("访问充值API，结果失败,失败信息："+jsonObject.getString("msg"));
+//            vcOrderRecharge.setOrderStatus(OrderStatusEnum.FAILED.getValue());
+//            vcOrderRechargeService.save(vcOrderRecharge);
+//            return new ResponseBean(400,jsonObject.getString("code"),jsonObject.getString("msg"));
+//        }
+//
+//
+//        String orderStatus=jsonObject.getString("OrderStatus");
+//        OrderStatusEnum orderStatusEnum=OrderStatusEnum.getOrderStatusEnumByCode(orderStatus);
+//        vcOrderRecharge.setOrderStatus(orderStatusEnum.getValue());
+//        log.info("访问充值API，访问成功,订单 状态："+orderStatusEnum.getContent());
+//        vcOrderRechargeService.save(vcOrderRecharge);
+//        return new ResponseBean(200,orderStatus,orderStatusEnum.getContent());
+    }
+
+    @Override
+    public ResponseBean rechargeForAdmin(RechargeReqDto rechargeReqDto) {
         VcOrderRecharge vcOrderRecharge = VcOrderRecharge.builder()
                 .orderNo(rechargeReqDto.getOrderNo())
                 .bizType(rechargeReqDto.getBizType())

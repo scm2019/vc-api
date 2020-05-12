@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.vcapi.mapper.VcCustomerMapper">
+
+    <select id="queryPage" resultType="org.jeecg.modules.vcapi.entity.VcCustomer">
+        SELECT
+            c.*
+            ,u.username as userName
+        FROM
+            vc_customer c
+        LEFT JOIN sys_user u ON (
+            c.user_id = u.id
+            AND u.del_flag = '0'
+        )
+        <where>
+            <if test="item.userName != null and item.userName !='' ">
+                and u.username LIKE CONCAT('%',#{item.userName},'%')
+            </if>
+            <if test="item.companyName != null and item.companyName != ''">
+                and c.company_name LIKE CONCAT('%',#{item.companyName},'%')
+            </if>
+            <if test="item.phone != null and item.phone != ''">
+                and c.phone  LIKE CONCAT('%',#{item.phone},'%')
+            </if>
+            <if test="item.email != null and item.email != ''">
+                and c.email  LIKE CONCAT('%',#{item.email},'%')
+            </if>
+            <if test="item.broker != null and item.broker != ''">
+                and c.broker  LIKE CONCAT('%',#{item.broker},'%')
+            </if>
+            <if test="(isAdmin != null and isAdmin == false) and (userName != null and userName != '')">
+                and u.username = #{userName}
+            </if>
+        </where>
+
+    </select>
+
+    <select id="getCustomerByUserId" resultType="org.jeecg.modules.vcapi.entity.VcCustomer">
+        select * from vc_customer where user_id = #{userId}
+    </select>
+
+    <select id="exportListData" resultType="org.jeecg.modules.vcapi.entity.VcCustomer">
+        SELECT
+        c.*,u.username as userName
+        FROM
+        vc_customer c
+        LEFT JOIN sys_user u ON (
+        c.user_id = u.id
+        AND u.del_flag = '0'
+        )
+        <where>
+            <if test="item.userName != null and item.userName !='' ">
+                and u.username LIKE CONCAT('%',#{item.userName},'%')
+            </if>
+            <if test="item.companyName != null and item.companyName != ''">
+                and c.company_name LIKE CONCAT('%',#{item.companyName},'%')
+            </if>
+            <if test="item.phone != null and item.phone != ''">
+                and c.phone  LIKE CONCAT('%',#{item.phone},'%')
+            </if>
+            <if test="item.email != null and item.email != ''">
+                and c.email  LIKE CONCAT('%',#{item.email},'%')
+            </if>
+            <if test="item.broker != null and item.broker != ''">
+                and c.broker  LIKE CONCAT('%',#{item.broker},'%')
+            </if>
+            <if test="(isAdmin != null and isAdmin == false) and (userName != null and userName != '')">
+                and u.username = #{userName}
+            </if>
+        </where>
+
+    </select>
+</mapper>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.vcapi.mapper.VcVoucherMapper">
+
+    <select id="queryPage" resultType="org.jeecg.modules.vcapi.entity.VcVoucher">
+        SELECT
+        vc.*,tmp.item_text as statusDesc,u.username as customerName
+        FROM
+        vc_voucher vc
+        LEFT JOIN (
+            SELECT
+            item.*
+            FROM
+            sys_dict dict
+            LEFT JOIN sys_dict_item item ON dict.id = item.dict_id
+            WHERE
+            dict.dict_code = 'vc_status'
+        ) AS tmp ON vc.`status` = tmp.item_value
+        left join sys_user u on vc.customer_id = u.id
+        <where>
+            <if test="item.name != null and item.name !=''">
+               and `name` LIKE CONCAT('%',#{item.name},'%')
+            </if>
+            <if test="item.cardCode != null and item.cardCode !=''">
+                and card_code LIKE CONCAT('%',#{item.cardCode},'%')
+            </if>
+            <if test="item.sku != null and item.sku !=''">
+                and sku LIKE CONCAT('%',#{item.sku},'%')
+            </if>
+            <if test="item.status != null and item.status !=''">
+                and `status` =#{item.status}
+            </if>
+            <if test="item.issuingBank != null and item.issuingBank !=''">
+                and `issuing_bank` LIKE CONCAT('%',#{item.issuingBank},'%')
+            </if>
+            <if test="item.expireStartDate != null">
+                <![CDATA[
+                 and  expire_date >= #{item.expireStartDate}
+                ]]>
+            </if>
+            <if test="item.expireEndDate != null">
+                <![CDATA[
+                 and  expire_date <= #{item.expireEndDate}
+                ]]>
+            </if>
+            <if test="item.activeStartDate != null">
+                <![CDATA[
+                 and  active_date >= #{item.activeStartDate}
+                ]]>
+            </if>
+            <if test="item.activeEndDate != null">
+                <![CDATA[
+                 and  active_date <= #{item.activeEndDate}
+                ]]>
+            </if>
+        </where>
+    </select>
+</mapper>
