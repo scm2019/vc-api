@@ -132,7 +132,7 @@ public class VcRechargeServiceImpl implements VcRechargeService {
                 .bizType(rechargeReqDto.getBizType())
                 .build();
         List<VcOrderRecharge> vcOrderRechargeList = vcOrderRechargeService.getVcOrderRechargeList(vcOrderRecharge);
-        /*if (vcOrderRechargeList != null&&vcOrderRechargeList.size()>0) {
+        if (vcOrderRechargeList != null&&vcOrderRechargeList.size()>0) {
             log.info("存在订单号相同的数据,id="+vcOrderRechargeList.get(0).getId());
             return new ResponseBean(400, "", "存在订单号相同的数据！！！");
         }
@@ -169,7 +169,7 @@ public class VcRechargeServiceImpl implements VcRechargeService {
                 //修改客户信息表
                 customerService.updateById(customer);
             }
-        }*/
+        }
         BeanUtils.copyProperties(rechargeReqDto, vcOrderRecharge);
         SortedMap<Object, Object> param = new TreeMap<Object, Object>();
         param.put("OrderNo", rechargeReqDto.getOrderNo());
