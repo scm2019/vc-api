@@ -1,7 +1,6 @@
 package org.jeecg.modules.vcapi.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.SecurityUtils;
 import org.jeecg.common.system.vo.LoginUser;
@@ -110,6 +109,7 @@ public class VcRechargeServiceImpl implements VcRechargeService {
                 .orderNo(rechargeReqDto.getOrderNo())
                 .bizType(rechargeReqDto.getBizType())
                 .build();
+        log.debug("充值数据："+rechargeReqDto);
         List<VcOrderRecharge> vcOrderRechargeList = vcOrderRechargeService.getVcOrderRechargeList(vcOrderRecharge);
         if (vcOrderRechargeList != null&&vcOrderRechargeList.size()>0) {
             log.info("存在订单号相同的数据,id="+vcOrderRechargeList.get(0).getId());
@@ -173,43 +173,44 @@ public class VcRechargeServiceImpl implements VcRechargeService {
         vcOrderRecharge.setUpdateTime(date);
         vcOrderRecharge.setCallback(0);
         log.debug("开始访问，充值API，参数："+param);
+        vcOrderRechargeService.save(vcOrderRecharge);
 //
         //todo 测试代码
-        vcOrderRecharge.setRequestCode("OK");
-        vcOrderRecharge.setRequestStatus("1");
-        vcOrderRecharge.setRequestMsg("成功");
-        vcOrderRechargeService.save(vcOrderRecharge);
-        return new ResponseBean(200,OrderStatusEnum.SUCCESS.getCode(),OrderStatusEnum.SUCCESS.getContent());
-
-//        JSONObject jsonObject=queryApi(rechargeReqDto.getBizType(),ApiTypeEnum.SubmitOrder.getCode(),param);
-//        if (jsonObject==null)
-//        {
-//            vcOrderRecharge.setOrderStatus(OrderStatusEnum.ERROR.getValue());
-//            log.info("访问充值API，网络访问失败！！！");
-//            vcOrderRecharge.setRequestStatus("-500");
-//            vcOrderRecharge.setRequestMsg("网络连接失败");
-//            vcOrderRechargeService.save(vcOrderRecharge);
-//            return new ResponseBean(500,"网络访问失败！！！","网络访问失败！！！");
-//        }
-//        log.debug("访问充值API，成功");
-//        vcOrderRecharge.setRequestCode(jsonObject.getString("code"));
-//        vcOrderRecharge.setRequestStatus(jsonObject.getString("status"));
-//        vcOrderRecharge.setRequestMsg(jsonObject.getString("msg"));
-//
-//        if (ApiStatusEnum.ERROR.getCode().equals(jsonObject.getString("status"))){
-//            log.info("访问充值API，结果失败,失败信息："+jsonObject.getString("msg"));
-//            vcOrderRecharge.setOrderStatus(OrderStatusEnum.FAILED.getValue());
-//            vcOrderRechargeService.save(vcOrderRecharge);
-//            return new ResponseBean(400,jsonObject.getString("code"),jsonObject.getString("msg"));
-//        }
-//
-//
-//        String orderStatus=jsonObject.getString("OrderStatus");
-//        OrderStatusEnum orderStatusEnum=OrderStatusEnum.getOrderStatusEnumByCode(orderStatus);
-//        vcOrderRecharge.setOrderStatus(orderStatusEnum.getValue());
-//        log.info("访问充值API，访问成功,订单 状态："+orderStatusEnum.getContent());
+//        vcOrderRecharge.setRequestCode("OK");
+//        vcOrderRecharge.setRequestStatus("1");
+//        vcOrderRecharge.setRequestMsg("成功");
 //        vcOrderRechargeService.save(vcOrderRecharge);
-//        return new ResponseBean(200,orderStatus,orderStatusEnum.getContent());
+//        return new ResponseBean(200,OrderStatusEnum.SUCCESS.getCode(),OrderStatusEnum.SUCCESS.getContent());
+
+        JSONObject jsonObject=queryApi(rechargeReqDto.getBizType(),ApiTypeEnum.SubmitOrder.getCode(),param);
+        if (jsonObject==null)
+        {
+            vcOrderRecharge.setOrderStatus(OrderStatusEnum.ERROR.getValue());
+            log.info("访问充值API，网络访问失败！！！");
+            vcOrderRecharge.setRequestStatus("-500");
+            vcOrderRecharge.setRequestMsg("网络连接失败");
+            vcOrderRechargeService.saveOrUpdate(vcOrderRecharge);
+            return new ResponseBean(500,"网络访问失败！！！","网络访问失败！！！");
+        }
+        log.debug("访问充值API，成功");
+        vcOrderRecharge.setRequestCode(jsonObject.getString("code"));
+        vcOrderRecharge.setRequestStatus(jsonObject.getString("status"));
+        vcOrderRecharge.setRequestMsg(jsonObject.getString("msg"));
+
+        if (ApiStatusEnum.ERROR.getCode().equals(jsonObject.getString("status"))){
+            log.info("访问充值API，结果失败,失败信息："+jsonObject.getString("msg"));
+            vcOrderRecharge.setOrderStatus(OrderStatusEnum.FAILED.getValue());
+            vcOrderRechargeService.saveOrUpdate(vcOrderRecharge);
+            return new ResponseBean(400,jsonObject.getString("code"),jsonObject.getString("msg"));
+        }
+
+
+        String orderStatus=jsonObject.getString("OrderStatus");
+        OrderStatusEnum orderStatusEnum=OrderStatusEnum.getOrderStatusEnumByCode(orderStatus);
+        vcOrderRecharge.setOrderStatus(orderStatusEnum.getValue());
+        log.info("访问充值API，访问成功,订单 状态："+orderStatusEnum.getContent());
+        vcOrderRechargeService.saveOrUpdate(vcOrderRecharge);
+        return new ResponseBean(200,orderStatus,orderStatusEnum.getContent());
     }
 
     @Override
