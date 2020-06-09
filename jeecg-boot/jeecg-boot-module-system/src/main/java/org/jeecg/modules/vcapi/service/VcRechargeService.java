@@ -48,6 +48,8 @@ public interface VcRechargeService {
 
      String callBack(CallBackReqDto callBackReqDto);
 
+     String orderCallback(String str);
+
      /**
       * @Author: Mr.Luke
       * @Description: 将回调失败的数据重新回调

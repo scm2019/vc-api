@@ -17,4 +17,5 @@ public interface VcProductMapper extends BaseMapper<VcProduct> {
 
     @Delete("delete from vc_product")
     void deleteAll();
+
 }

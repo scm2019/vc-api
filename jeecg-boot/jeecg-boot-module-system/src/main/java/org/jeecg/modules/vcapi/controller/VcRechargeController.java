@@ -7,6 +7,7 @@ import org.apache.shiro.SecurityUtils;
 import org.jeecg.common.api.vo.Result;
 import org.jeecg.common.system.vo.DictModel;
 import org.jeecg.common.system.vo.LoginUser;
+import org.jeecg.modules.quartz.job.FuLuProductDataJob;
 import org.jeecg.modules.shiro.vo.ResponseBean;
 import org.jeecg.modules.system.service.ISysUserRoleService;
 import org.jeecg.modules.system.service.impl.SysDictServiceImpl;
@@ -14,6 +15,7 @@ import org.jeecg.modules.vcapi.entity.req.CallBackReqDto;
 import org.jeecg.modules.vcapi.entity.req.RechargeReqDto;
 import org.jeecg.modules.vcapi.enums.RoleCodeEnum;
 import org.jeecg.modules.vcapi.service.VcRechargeService;
+import org.jeecg.modules.vcapi.service.impl.CallbackSeviceImpl;
 import org.jeecg.modules.vcapi.util.SignUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -61,6 +63,7 @@ public class VcRechargeController {
     @ApiOperation("获取业务分类")
     public ResponseBean getBizType(){
         List<DictModel> list=sysDictService.queryDictItemsByCode("BizType");
+
         return new ResponseBean(200,"OK",list );
     }
 
@@ -69,6 +72,21 @@ public class VcRechargeController {
     public ResponseBean getProductByBizType(String bizType){
         return vcRechargeService.getProductByBizType(bizType);
     }
+
+    @GetMapping("oyzq")
+    @ApiOperation("根据业务类型获取商品信息")
+    public ResponseBean oyzq(){
+        /*try {*/
+            FuLuProductDataJob f=new FuLuProductDataJob();
+            f.fuLuProductDataJob();
+            return new ResponseBean(200,"成功","OK");
+       /* }catch (Exception e){
+            System.err.println(e);
+            return new ResponseBean(300,"出现异常","NO");
+        }*/
+
+    }
+
 
 //    @GetMapping("getBalance")
 //    @ApiOperation("获取账户余额")
@@ -79,7 +97,7 @@ public class VcRechargeController {
     @PostMapping("recharge")
     @ApiOperation("充值API接口")
     public ResponseBean recharge(@RequestBody RechargeReqDto rechargeReqDto) {
-       return vcRechargeService.recharge(rechargeReqDto);
+        return vcRechargeService.recharge(rechargeReqDto);
     }
 
     @PostMapping("rechargeForAdmin")
@@ -109,6 +127,13 @@ public class VcRechargeController {
             log.info(paraName+":"+request.getParameter(paraName));
         }
         return vcRechargeService.callBack(callBackReqDto);
+    }
+
+    @RequestMapping("/orderCallback")
+    @ApiOperation("福禄订单回调")
+    public String orderCallback(@RequestBody String str) {
+        vcRechargeService.orderCallback(str);
+        return "success";
     }
 
 

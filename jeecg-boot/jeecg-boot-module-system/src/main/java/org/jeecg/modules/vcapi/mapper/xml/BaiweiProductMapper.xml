@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.vcapi.mapper.BaiweiProductMapper">
+    <select id="getBaiweiProduct" resultType="org.jeecg.modules.vcapi.entity.BaiweiProduct">
+        select * from baiwei_product
+        <where>
+            <if test="productid!=null and productid!=''">
+                product_id=#{productid}
+            </if>
+        </where>
+    </select>
+</mapper>
