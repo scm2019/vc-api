@@ -91,7 +91,7 @@ public class VcOrderRechargeController {
 		 Page<VcOrderRecharge> page = new Page<VcOrderRecharge>(pageNo, pageSize);
 		 LoginUser sysUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
 		 Boolean isAdmin = false;
-		 if(sysUserRoleService.getUserRole(sysUser.getUsername()).stream().filter(role->(RoleCodeEnum.ADMIN.getRoleCode().equals(role))).collect(Collectors.toList()).size()>0){
+			 if(sysUserRoleService.getUserRole(sysUser.getUsername()).stream().filter(role->(RoleCodeEnum.ADMIN.getRoleCode().equals(role))).collect(Collectors.toList()).size()>0){
 			 //管理员的查看全部人员的
 			 isAdmin = true;
 		 }else if(sysUserRoleService.getUserRole(sysUser.getUsername()).stream().filter(role->(RoleCodeEnum.CUSTOMER.getRoleCode().equals(role))).collect(Collectors.toList()).size()>0){

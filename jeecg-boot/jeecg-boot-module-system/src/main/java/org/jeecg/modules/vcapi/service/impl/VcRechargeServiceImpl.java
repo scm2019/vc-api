@@ -1,5 +1,6 @@
 package org.jeecg.modules.vcapi.service.impl;
-
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.SecurityUtils;
@@ -17,6 +18,7 @@ import org.jeecg.modules.vcapi.service.*;
 import org.jeecg.modules.vcapi.util.SignUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,13 +26,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
-import java.util.Date;
-import java.util.List;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * @description:
@@ -48,12 +48,34 @@ public class VcRechargeServiceImpl implements VcRechargeService {
     private final IVcCustomerService customerService;
     private final IVcProductService productService;
 
+
     @Value("${api.apiKey}")
     private String apiKey;
     @Value("${api.userId}")
     private String userId;
     @Value("${api.http.address}")
     private String apiHttpAddress;
+
+    @Autowired
+    @Qualifier("JiaNuoUpstreamSevice")
+    private IUpstreamSevice iUpstreamSevice;
+    @Autowired
+    @Qualifier("FuLuUpstreamSevice")
+    private IUpstreamSevice iUpstreamFuLuSevice;
+    @Autowired
+    @Qualifier("BaiweiUpstreamSevice")
+    private IUpstreamSevice iUpstreamBaiWeiSevice;
+    @Autowired
+    @Qualifier("JiaNuoPlaceanOrderSevice")
+    private IPlaceanOrderSevice iPlaceanOrderSevice;
+    @Autowired
+    @Qualifier("FuluPlaceanOrderSevice")
+    private IPlaceanOrderSevice iPlaceanOrderFuLuSevice;
+    @Autowired
+    @Qualifier("BaiWeiPlaceanOrderSevice")
+    private IPlaceanOrderSevice iPlaceanOrderBaiWeiSevice;
+    @Autowired
+    private ICallbackSevice iCallbackSevice;
 
 
     @Autowired
@@ -74,15 +96,14 @@ public class VcRechargeServiceImpl implements VcRechargeService {
             return new ResponseBean(400,"参数不能为空","参数不能为空");
         }
         log.debug("获取："+bizType+",类型商品。");
-        JSONObject jsonObject= queryApi(bizType, ApiTypeEnum.QueryProducts.getCode(),null);
-        if (jsonObject==null)
-        {
-            return new ResponseBean(500,"网络访问失败！！！","网络访问失败！！！");
+        if(bizType.equals(BizTypeEnum.FULU.toString())){
+            return iUpstreamFuLuSevice.getProductByBizType();
+        }else if(bizType.equals(BizTypeEnum.BAIWEI.toString())){
+            return iUpstreamBaiWeiSevice.getProductByBizType(bizType);
+        }else{
+            return iUpstreamSevice.getProductByBizType(bizType);
         }
-        if (ApiStatusEnum.ERROR.getCode().equals(jsonObject.getString("status"))){
-            return new ResponseBean(400,jsonObject.getString("code"),jsonObject.getString("msg"));
-        }
-        return new ResponseBean(200,jsonObject.getString("msg"),jsonObject.get("Products"));
+
     }
 
 
@@ -134,7 +155,7 @@ public class VcRechargeServiceImpl implements VcRechargeService {
                 BigDecimal orderPrice = product.getPrice().multiply(new BigDecimal(rechargeReqDto.getBuyNum())).multiply(discount);
                 int priceIsEnought = orderPrice.compareTo(customer.getMoney());
                 if(priceIsEnought > 0){
-                   //订单金额超过加款的话，看看授信是否足够
+                    //订单金额超过加款的话，看看授信是否足够
                     int quotaIsEnought = orderPrice.compareTo(customer.getQuota());
                     if(quotaIsEnought > 0){
                         return new ResponseBean(400, "", "余额不足！！！");
@@ -182,35 +203,19 @@ public class VcRechargeServiceImpl implements VcRechargeService {
 //        vcOrderRechargeService.save(vcOrderRecharge);
 //        return new ResponseBean(200,OrderStatusEnum.SUCCESS.getCode(),OrderStatusEnum.SUCCESS.getContent());
 
-        JSONObject jsonObject=queryApi(rechargeReqDto.getBizType(),ApiTypeEnum.SubmitOrder.getCode(),param);
-        if (jsonObject==null)
-        {
-            vcOrderRecharge.setOrderStatus(OrderStatusEnum.ERROR.getValue());
-            log.info("访问充值API，网络访问失败！！！");
-            vcOrderRecharge.setRequestStatus("-500");
-            vcOrderRecharge.setRequestMsg("网络连接失败");
-            vcOrderRechargeService.saveOrUpdate(vcOrderRecharge);
-            return new ResponseBean(500,"网络访问失败！！！","网络访问失败！！！");
-        }
-        log.debug("访问充值API，成功");
-        vcOrderRecharge.setRequestCode(jsonObject.getString("code"));
-        vcOrderRecharge.setRequestStatus(jsonObject.getString("status"));
-        vcOrderRecharge.setRequestMsg(jsonObject.getString("msg"));
-
-        if (ApiStatusEnum.ERROR.getCode().equals(jsonObject.getString("status"))){
-            log.info("访问充值API，结果失败,失败信息："+jsonObject.getString("msg"));
-            vcOrderRecharge.setOrderStatus(OrderStatusEnum.FAILED.getValue());
-            vcOrderRechargeService.saveOrUpdate(vcOrderRecharge);
-            return new ResponseBean(400,jsonObject.getString("code"),jsonObject.getString("msg"));
+        if(rechargeReqDto.getBizType().equals(BizTypeEnum.FULU.toString())){
+            Map map = JSONObject.parseObject(JSONObject.toJSONString(rechargeReqDto), Map.class);
+            map.put("orderUserType","1");
+            ResponseBean rs=iUpstreamFuLuSevice.getProductByBizType();
+            JSONArray json = JSONArray.parseArray(rs.getData().toString());
+            return iPlaceanOrderFuLuSevice.recharge(map,json,vcOrderRecharge);
+        }else if(rechargeReqDto.getBizType().equals(BizTypeEnum.BAIWEI.toString())){
+            return iPlaceanOrderBaiWeiSevice.recharge(vcOrderRecharge);
+        }else{
+            return iPlaceanOrderSevice.recharge(vcOrderRecharge,param);
         }
 
 
-        String orderStatus=jsonObject.getString("OrderStatus");
-        OrderStatusEnum orderStatusEnum=OrderStatusEnum.getOrderStatusEnumByCode(orderStatus);
-        vcOrderRecharge.setOrderStatus(orderStatusEnum.getValue());
-        log.info("访问充值API，访问成功,订单 状态："+orderStatusEnum.getContent());
-        vcOrderRechargeService.saveOrUpdate(vcOrderRecharge);
-        return new ResponseBean(200,orderStatus,orderStatusEnum.getContent());
     }
 
     @Override
@@ -224,10 +229,7 @@ public class VcRechargeServiceImpl implements VcRechargeService {
             log.info("存在订单号相同的数据,id="+vcOrderRechargeList.get(0).getId());
             return new ResponseBean(400, "", "存在订单号相同的数据！！！");
         }
-
         BeanUtils.copyProperties(rechargeReqDto, vcOrderRecharge);
-
-
         SortedMap<Object, Object> param = new TreeMap<Object, Object>();
         param.put("OrderNo", rechargeReqDto.getOrderNo());
         param.put("ProductId", rechargeReqDto.getProductId());
@@ -368,7 +370,6 @@ public class VcRechargeServiceImpl implements VcRechargeService {
         }else {
             vcOrderRecharge = list.get(0);
             log.debug("回调地址：" + vcOrderRecharge.getCallbackAddress());
-
             String result=requestCallback(callBackReqDto,vcOrderRecharge.getCallbackAddress(),orderStatusEnum);
             VcOrderCallback vcOrderCallback=VcOrderCallback.builder()
                     .id(IDUtils.getID())
@@ -395,6 +396,24 @@ public class VcRechargeServiceImpl implements VcRechargeService {
             vcOrderRechargeService.updateById(vcOrderRecharge);
             return result;
         }
+    }
+
+    /**
+    *@Description: 福禄平台订单回调
+    *@date: 2020-06-08
+    **/
+    @Override
+    public String orderCallback(String str) {
+        VcOrderRecharge vcOrderRecharge = iCallbackSevice.orderCallback(str);
+        CallBackReqDto callBackReqDto=new CallBackReqDto();
+        callBackReqDto.setOrderNo(vcOrderRecharge.getOrderNo());
+        callBackReqDto.setBizType(vcOrderRecharge.getBizType());
+        callBackReqDto.setAccountVal(vcOrderRecharge.getAccountVal());
+        callBackReqDto.setOrderStatus(vcOrderRecharge.getRequestStatus());
+        callBackReqDto.setUserId(userId);
+        callBackReqDto.setTime(new Date().toString());
+        String result=requestCallback(callBackReqDto,vcOrderRecharge.getCallbackAddress(),OrderStatusEnum.getOrderStatusEnumByCode(callBackReqDto.getOrderStatus()));
+        return result;
     }
 
     @Override
@@ -449,7 +468,6 @@ public class VcRechargeServiceImpl implements VcRechargeService {
         str.append("&orderStatus=" + callBackReqDto.getOrderStatus());
         str.append("&orderMsg=" + orderStatusEnum.getContent());
         str.append("&time=" + callBackReqDto.getTime());
-
         log.debug("回调参数：" + str.toString());
         String result="network error";
         try {
@@ -462,6 +480,8 @@ public class VcRechargeServiceImpl implements VcRechargeService {
 
 
 
+
+
     /**
      * @Author: Mr.Luke
      * @Description: 查询服务实现
@@ -470,12 +490,12 @@ public class VcRechargeServiceImpl implements VcRechargeService {
      * @return: org.jeecg.modules.shiro.vo.ResponseBean
      */
     private JSONObject queryApi(String bizType, String service, SortedMap<Object,Object> param){
-
         SortedMap<Object,Object> signMap=new TreeMap<Object,Object>();
 
         StringBuilder url=new StringBuilder(apiHttpAddress);
         url.append("?Service="+service+"&V=2.0&UserId=");
         url.append(userId);
+
         signMap.put("UserId",userId);
         url.append("&BizType=");
         url.append(bizType);
@@ -484,7 +504,6 @@ public class VcRechargeServiceImpl implements VcRechargeService {
         long time=System.currentTimeMillis()/1000;
         url.append(time);
         signMap.put("Time",time);
-
         if (param!=null){
             signMap.putAll(param);
             param.forEach((key,value)->{

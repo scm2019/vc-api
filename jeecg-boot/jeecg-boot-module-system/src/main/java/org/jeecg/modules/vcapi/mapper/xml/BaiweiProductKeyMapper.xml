@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.vcapi.mapper.BaiweiProductKeyMapper">
+    <select id="getBaiweiProductKeyByid" resultType="org.jeecg.modules.vcapi.entity.BaiweiProductKey">
+        select * from baiwei_productkey where product_id=#{productid} and productkey_state=0
+    </select>
+    <select id="getBaiweiProductKeyByidlimit" resultType="org.jeecg.modules.vcapi.entity.BaiweiProductKey">
+        select * from baiwei_productkey where product_id=#{productid} and productkey_state=0 limit #{sl}
+    </select>
+    <select id="upBaiweiProductKeyByid" resultType="org.jeecg.modules.vcapi.entity.BaiweiProductKey">
+        UPDATE baiwei_productkey set productkey_state=1,update_time=NOW(),update_by=#{realname} WHERE product_key=#{key}
+    </select>
+</mapper>

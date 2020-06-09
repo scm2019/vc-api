@@ -28,7 +28,6 @@ public class RechargeReqDto {
     private String customerIP;
     @ApiModelProperty("特定产品充值时需要的参数，默认直接为空")
     private String extraData;
-
     @ApiModelProperty("回调地址")
     private String callbackAddress;
 }
